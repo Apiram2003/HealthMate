@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'screens/dashboard_screen.dart';
 
 /// The main entry point of the Flutter application.
 void main() {
   runApp(const HealthMateApp());
 }
 
-/// The root widget of the entire application.
-/// It configures the app title, Material 3 teal theme, and initial home screen.
+/// The root widget of the entire HealthMate application.
+/// It configures the app title, Material 3 teal theme, and sets
+/// the initial screen to DashboardScreen.
 class HealthMateApp extends StatelessWidget {
   const HealthMateApp({super.key});
 
@@ -15,67 +17,19 @@ class HealthMateApp extends StatelessWidget {
     return MaterialApp(
       title: 'HealthMate',
       debugShowCheckedModeBanner: false,
-      // Configure a clean Material 3 theme using Teal as the primary seed color
+      // Material 3 theme configuration with Teal as the primary color
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.teal,
           brightness: Brightness.light,
         ),
-      ),
-      home: const WelcomeScreen(),
-    );
-  }
-}
-
-/// A simple welcome screen for HealthMate (Stage 1 Setup).
-class WelcomeScreen extends StatelessWidget {
-  const WelcomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('HealthMate'),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Heart icon representing health and wellness
-              Icon(
-                Icons.favorite,
-                size: 80,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(height: 24),
-              // Main welcome heading
-              const Text(
-                'Welcome to HealthMate!',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              // Subtitle describing the application purpose
-              Text(
-                'Your Personal Health Tracker',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[600],
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
+        appBarTheme: const AppBarTheme(
+          centerTitle: true,
+          elevation: 0,
         ),
       ),
+      home: const DashboardScreen(),
     );
   }
 }
