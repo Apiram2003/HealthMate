@@ -1,13 +1,9 @@
-/// Represents a single daily health tracking record.
-///
-/// In Stage 2, this model provides structured sample data for the UI.
-/// In Stage 3 and 4, this model will be used with SQLite.
 class HealthRecord {
   final int? id;
-  final String date; // Format: YYYY-MM-DD
+  final String date;
   final int steps;
   final int calories;
-  final int water; // In millilitres (mL)
+  final int water;
 
   const HealthRecord({
     this.id,
@@ -17,8 +13,29 @@ class HealthRecord {
     required this.water,
   });
 
-  /// Creates a copy of this record with optional updated values.
-  /// Useful when editing an existing record.
+  // Convert health record into a Map for SQLite
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'date': date,
+      'steps': steps,
+      'calories': calories,
+      'water': water,
+    };
+  }
+
+  // Convert SQLite data into a HealthRecord object
+  factory HealthRecord.fromMap(Map<String, dynamic> map) {
+    return HealthRecord(
+      id: map['id'] as int?,
+      date: map['date'] as String,
+      steps: map['steps'] as int,
+      calories: map['calories'] as int,
+      water: map['water'] as int,
+    );
+  }
+
+  // Create a copy of an existing health record
   HealthRecord copyWith({
     int? id,
     String? date,
