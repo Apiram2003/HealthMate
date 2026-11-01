@@ -1,17 +1,32 @@
-# healthmate
 
-A new Flutter project.
+# HealthMate
 
-## Getting Started
+HealthMate is a personal health and wellness tracking mobile application developed using Flutter and Dart.
 
-This project is a starting point for a Flutter application.
+## Project Overview
 
-A few resources to get you started if this is your first Flutter project:
+This application aims to help users track their daily health activities, including steps, calories, and water intake.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Planned Features
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- Daily health dashboard
+- Add and manage health records
+- Track steps, calories, and water intake
+- View health record history
+- Store records locally using SQLite
+
+## Technologies
+
+- Flutter
+- Dart
+- SQLite (planned)
+- Provider state management (planned)
+
+## Development Progress
+
+- Stage 1: Initial Flutter project setup
+- Stage 2: UI and navigation development
+
+## Project Status
+
+Under development.
