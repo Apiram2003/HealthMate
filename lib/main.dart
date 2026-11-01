@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'screens/dashboard_screen.dart';
+
 void main() {
   runApp(const HealthMateApp());
 }
@@ -12,7 +14,6 @@ class HealthMateApp extends StatelessWidget {
     return MaterialApp(
       title: 'HealthMate',
       debugShowCheckedModeBanner: false,
-
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
@@ -47,6 +48,7 @@ class WelcomeScreen extends StatelessWidget {
                 size: 80,
                 color: Theme.of(context).colorScheme.primary,
               ),
+
               const SizedBox(height: 24),
 
               const Text(
@@ -54,12 +56,28 @@ class WelcomeScreen extends StatelessWidget {
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
+
               const SizedBox(height: 12),
 
               Text(
                 'Your Personal Health Tracker',
                 style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                 textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 32),
+
+              // Navigate to Dashboard
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const DashboardScreen(),
+                    ),
+                  );
+                },
+                child: const Text('Get Started'),
               ),
             ],
           ),
