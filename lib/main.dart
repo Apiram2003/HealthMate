@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import 'providers/health_record_provider.dart';
 import 'screens/dashboard_screen.dart';
 
 void main() {
-  runApp(const HealthMateApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => HealthRecordProvider(),
+      child: const HealthMateApp(),
+    ),
+  );
 }
 
 class HealthMateApp extends StatelessWidget {
