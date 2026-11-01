@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../models/health_record.dart';
-import '../database/database_helper.dart';
+import '../providers/health_record_provider.dart';
 
 // Screen to add or edit a health record
 class AddRecordScreen extends StatefulWidget {
@@ -30,16 +31,18 @@ class _AddRecordScreenState extends State<AddRecordScreen> {
     final record = widget.existingRecord;
 
     if (record != null) {
-      // Fill the form when editing a record
+      // Fill the form when editing
       _selectedDate = DateTime.tryParse(record.date) ?? DateTime.now();
 
       _stepsController = TextEditingController(text: record.steps.toString());
+
       _caloriesController = TextEditingController(
         text: record.calories.toString(),
       );
+
       _waterController = TextEditingController(text: record.water.toString());
     } else {
-      // Empty form for a new record
+      // Empty form for new record
       _selectedDate = DateTime.now();
       _stepsController = TextEditingController();
       _caloriesController = TextEditingController();
@@ -55,7 +58,7 @@ class _AddRecordScreenState extends State<AddRecordScreen> {
     super.dispose();
   }
 
-  // Select a date
+  // Select record date
   Future<void> _pickDate() async {
     final pickedDate = await showDatePicker(
       context: context,
@@ -80,7 +83,7 @@ class _AddRecordScreenState extends State<AddRecordScreen> {
     return '$year-$month-$day';
   }
 
-  // Validate number fields
+  // Validate numeric fields
   String? _validateNumber(String? value, String fieldName) {
     if (value == null || value.trim().isEmpty) {
       return 'Please enter $fieldName';
@@ -99,9 +102,9 @@ class _AddRecordScreenState extends State<AddRecordScreen> {
     return null;
   }
 
-  // Save or update the health record in SQLite
+  // Save or update record using Provider
   Future<void> _saveForm() async {
-    if (!_formKey.currentState!.validate()) {
+    if (_isSaving || !_formKey.currentState!.validate()) {
       return;
     }
 
@@ -120,12 +123,12 @@ class _AddRecordScreenState extends State<AddRecordScreen> {
     );
 
     try {
-      final databaseHelper = DatabaseHelper();
+      final healthProvider = context.read<HealthRecordProvider>();
 
       if (isEditing) {
-        await databaseHelper.updateRecord(record);
+        await healthProvider.updateRecord(record);
       } else {
-        await databaseHelper.insertRecord(record);
+        await healthProvider.addRecord(record);
       }
 
       if (!mounted) return;
@@ -141,7 +144,7 @@ class _AddRecordScreenState extends State<AddRecordScreen> {
         ),
       );
 
-      // Return the saved record to the previous screen
+      // Return saved record to previous screen
       Navigator.pop(context, record);
     } catch (e) {
       if (!mounted) return;
@@ -251,7 +254,7 @@ class _AddRecordScreenState extends State<AddRecordScreen> {
 
                 const SizedBox(height: 16),
 
-                // Water intake input
+                // Water input
                 TextFormField(
                   controller: _waterController,
                   keyboardType: TextInputType.number,
