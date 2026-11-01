@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../models/health_record.dart';
-import '../database/database_helper.dart';
+import '../providers/health_record_provider.dart';
 import '../widgets/summary_card.dart';
 import 'add_record_screen.dart';
 import 'records_screen.dart';
@@ -14,18 +15,16 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final DatabaseHelper _databaseHelper = DatabaseHelper();
-
-  int _steps = 0;
-  int _calories = 0;
-  int _water = 0;
-
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadTodayRecord();
+
+    // Load saved health records when Dashboard opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadRecords();
+    });
   }
 
   // Get today's date in YYYY-MM-DD format
@@ -39,31 +38,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return '$year-$month-$day';
   }
 
-  // Load today's saved health records from SQLite
-  Future<void> _loadTodayRecord() async {
+  // Load records using Provider
+  Future<void> _loadRecords() async {
+    if (!mounted) return;
+
     try {
-      final List<HealthRecord> records = await _databaseHelper.getRecords();
-
-      final today = _getFormattedDate();
-
-      int totalSteps = 0;
-      int totalCalories = 0;
-      int totalWater = 0;
-
-      for (final record in records) {
-        if (record.date == today) {
-          totalSteps += record.steps;
-          totalCalories += record.calories;
-          totalWater += record.water;
-        }
-      }
+      await context.read<HealthRecordProvider>().loadRecords();
 
       if (!mounted) return;
 
       setState(() {
-        _steps = totalSteps;
-        _calories = totalCalories;
-        _water = totalWater;
         _isLoading = false;
       });
     } catch (e) {
@@ -74,7 +58,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to load today\'s records')),
+        const SnackBar(content: Text('Unable to load health records')),
       );
     }
   }
@@ -87,7 +71,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
 
     if (mounted) {
-      await _loadTodayRecord();
+      await _loadRecords();
     }
   }
 
@@ -99,13 +83,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
 
     if (mounted) {
-      await _loadTodayRecord();
+      await _loadRecords();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final todayDate = _getFormattedDate();
+
+    // Read today's totals from Provider
+    final healthProvider = context.watch<HealthRecordProvider>();
+
+    final steps = healthProvider.getTotalSteps(todayDate);
+    final calories = healthProvider.getTotalCalories(todayDate);
+    final water = healthProvider.getTotalWater(todayDate);
 
     return Scaffold(
       appBar: AppBar(
@@ -168,7 +159,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     // Steps
                     SummaryCard(
                       title: 'Total Steps Walked',
-                      value: _steps.toString(),
+                      value: steps.toString(),
                       unit: 'steps',
                       icon: Icons.directions_walk,
                       color: Colors.green,
@@ -177,7 +168,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     // Calories
                     SummaryCard(
                       title: 'Total Calories Burned',
-                      value: _calories.toString(),
+                      value: calories.toString(),
                       unit: 'kcal',
                       icon: Icons.local_fire_department,
                       color: Colors.deepOrange,
@@ -186,7 +177,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     // Water
                     SummaryCard(
                       title: 'Total Water Intake',
-                      value: _water.toString(),
+                      value: water.toString(),
                       unit: 'mL',
                       icon: Icons.water_drop,
                       color: Colors.blue,
@@ -219,7 +210,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                     const SizedBox(height: 16),
 
-                    // Simple information message
+                    // Information message
                     const Card(
                       child: Padding(
                         padding: EdgeInsets.all(12),
