@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../models/health_record.dart';
-import '../database/database_helper.dart';
+import '../providers/health_record_provider.dart';
 import 'add_record_screen.dart';
 
 class RecordsScreen extends StatefulWidget {
@@ -12,17 +13,18 @@ class RecordsScreen extends StatefulWidget {
 }
 
 class _RecordsScreenState extends State<RecordsScreen> {
-  final DatabaseHelper _databaseHelper = DatabaseHelper();
   final TextEditingController _filterController = TextEditingController();
 
-  List<HealthRecord> _records = [];
   String _filterQuery = '';
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadRecords();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadRecords();
+    });
   }
 
   @override
@@ -31,15 +33,16 @@ class _RecordsScreenState extends State<RecordsScreen> {
     super.dispose();
   }
 
-  // Load all health records from SQLite
+  // Load records using Provider
   Future<void> _loadRecords() async {
+    if (!mounted) return;
+
     try {
-      final records = await _databaseHelper.getRecords();
+      await context.read<HealthRecordProvider>().loadRecords();
 
       if (!mounted) return;
 
       setState(() {
-        _records = records;
         _isLoading = false;
       });
     } catch (e) {
@@ -55,7 +58,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
     }
   }
 
-  // Select a date to filter records
+  // Select date for filtering
   Future<void> _pickFilterDate() async {
     final pickedDate = await showDatePicker(
       context: context,
@@ -75,7 +78,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
     }
   }
 
-  // Clear the date filter
+  // Clear date filter
   void _clearFilter() {
     setState(() {
       _filterController.clear();
@@ -85,31 +88,32 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
   // Open Add Record screen
   Future<void> _addNewRecord() async {
-    final result = await Navigator.push<HealthRecord>(
+    await Navigator.push<HealthRecord>(
       context,
       MaterialPageRoute(builder: (context) => const AddRecordScreen()),
     );
 
-    if (result != null) {
-      await _loadRecords();
+    // Provider updates records after saving
+    if (mounted) {
+      setState(() {});
     }
   }
 
   // Open Edit Record screen
   Future<void> _editRecord(HealthRecord record) async {
-    final result = await Navigator.push<HealthRecord>(
+    await Navigator.push<HealthRecord>(
       context,
       MaterialPageRoute(
         builder: (context) => AddRecordScreen(existingRecord: record),
       ),
     );
 
-    if (result != null) {
-      await _loadRecords();
+    if (mounted) {
+      setState(() {});
     }
   }
 
-  // Delete a record after confirmation
+  // Delete record using Provider
   Future<void> _confirmDelete(HealthRecord record) async {
     final shouldDelete = await showDialog<bool>(
       context: context,
@@ -132,10 +136,10 @@ class _RecordsScreenState extends State<RecordsScreen> {
     );
 
     if (shouldDelete == true && record.id != null) {
-      try {
-        await _databaseHelper.deleteRecord(record.id!);
+      if (!mounted) return;
 
-        await _loadRecords();
+      try {
+        await context.read<HealthRecordProvider>().deleteRecord(record.id!);
 
         if (!mounted) return;
 
@@ -154,9 +158,13 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Get records from Provider
+    final healthProvider = context.watch<HealthRecordProvider>();
+    final records = healthProvider.records;
+
     final filteredRecords = _filterQuery.isEmpty
-        ? _records
-        : _records
+        ? records
+        : records
               .where((record) => record.date.contains(_filterQuery))
               .toList();
 
