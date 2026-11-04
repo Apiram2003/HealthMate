@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../models/health_record.dart';
 import '../providers/health_record_provider.dart';
 
-// Screen to add or edit a health record
 class AddRecordScreen extends StatefulWidget {
   final HealthRecord? existingRecord;
 
@@ -16,6 +15,9 @@ class AddRecordScreen extends StatefulWidget {
 
 class _AddRecordScreenState extends State<AddRecordScreen> {
   final _formKey = GlobalKey<FormState>();
+
+  static const Color oceanBlue = Color(0xFF0277BD);
+  static const Color lightBlue = Color(0xFFE3F2FD);
 
   late DateTime _selectedDate;
   late TextEditingController _stepsController;
@@ -30,24 +32,21 @@ class _AddRecordScreenState extends State<AddRecordScreen> {
 
     final record = widget.existingRecord;
 
-    if (record != null) {
-      // Fill the form when editing
-      _selectedDate = DateTime.tryParse(record.date) ?? DateTime.now();
+    _selectedDate = record == null
+        ? DateTime.now()
+        : DateTime.tryParse(record.date) ?? DateTime.now();
 
-      _stepsController = TextEditingController(text: record.steps.toString());
+    _stepsController = TextEditingController(
+      text: record?.steps.toString() ?? '',
+    );
 
-      _caloriesController = TextEditingController(
-        text: record.calories.toString(),
-      );
+    _caloriesController = TextEditingController(
+      text: record?.calories.toString() ?? '',
+    );
 
-      _waterController = TextEditingController(text: record.water.toString());
-    } else {
-      // Empty form for new record
-      _selectedDate = DateTime.now();
-      _stepsController = TextEditingController();
-      _caloriesController = TextEditingController();
-      _waterController = TextEditingController();
-    }
+    _waterController = TextEditingController(
+      text: record?.water.toString() ?? '',
+    );
   }
 
   @override
@@ -58,7 +57,14 @@ class _AddRecordScreenState extends State<AddRecordScreen> {
     super.dispose();
   }
 
-  // Select record date
+  String _formattedDate(DateTime date) {
+    final year = date.year.toString();
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+
+    return '$year-$month-$day';
+  }
+
   Future<void> _pickDate() async {
     final pickedDate = await showDatePicker(
       context: context,
@@ -74,16 +80,6 @@ class _AddRecordScreenState extends State<AddRecordScreen> {
     }
   }
 
-  // Convert date to YYYY-MM-DD
-  String _formattedDate(DateTime date) {
-    final year = date.year.toString();
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-
-    return '$year-$month-$day';
-  }
-
-  // Validate numeric fields
   String? _validateNumber(String? value, String fieldName) {
     if (value == null || value.trim().isEmpty) {
       return 'Please enter $fieldName';
@@ -102,7 +98,6 @@ class _AddRecordScreenState extends State<AddRecordScreen> {
     return null;
   }
 
-  // Save or update record using Provider
   Future<void> _saveForm() async {
     if (_isSaving || !_formKey.currentState!.validate()) {
       return;
@@ -123,12 +118,12 @@ class _AddRecordScreenState extends State<AddRecordScreen> {
     );
 
     try {
-      final healthProvider = context.read<HealthRecordProvider>();
+      final provider = context.read<HealthRecordProvider>();
 
       if (isEditing) {
-        await healthProvider.updateRecord(record);
+        await provider.updateRecord(record);
       } else {
-        await healthProvider.addRecord(record);
+        await provider.addRecord(record);
       }
 
       if (!mounted) return;
@@ -140,11 +135,10 @@ class _AddRecordScreenState extends State<AddRecordScreen> {
                 ? 'Health record updated successfully!'
                 : 'Health record saved successfully!',
           ),
-          backgroundColor: Colors.teal,
+          backgroundColor: oceanBlue,
         ),
       );
 
-      // Return saved record to previous screen
       Navigator.pop(context, record);
     } catch (e) {
       if (!mounted) return;
@@ -164,14 +158,63 @@ class _AddRecordScreenState extends State<AddRecordScreen> {
     }
   }
 
+  Widget _buildNumberField({
+    required String title,
+    required String hint,
+    required String unit,
+    required IconData icon,
+    required Color iconColor,
+    required TextEditingController controller,
+    required String fieldName,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: const TextInputType.numberWithOptions(signed: true),
+        decoration: InputDecoration(
+          labelText: title,
+          hintText: hint,
+          suffixText: unit,
+          prefixIcon: Icon(icon, color: iconColor),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 20,
+            horizontal: 16,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Color(0xFFCFD8DC)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Color(0xFFCFD8DC)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: oceanBlue, width: 2),
+          ),
+        ),
+        validator: (value) => _validateNumber(value, fieldName),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.existingRecord != null;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF4F9FD),
       appBar: AppBar(
-        title: Text(isEditing ? 'Edit Health Record' : 'Add Health Record'),
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+        backgroundColor: oceanBlue,
+        foregroundColor: Colors.white,
+        title: Text(
+          isEditing ? 'Edit Health Record' : 'Add Health Record',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
       ),
       body: Center(
         child: ConstrainedBox(
@@ -181,109 +224,179 @@ class _AddRecordScreenState extends State<AddRecordScreen> {
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                // Date selection
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.calendar_today, color: Colors.teal),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Record Date'),
-                              const SizedBox(height: 4),
-                              Text(
-                                _formattedDate(_selectedDate),
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: lightBlue,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: Colors.white,
+                        radius: 25,
+                        child: Icon(Icons.favorite, color: oceanBlue, size: 28),
+                      ),
+                      SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Track Your Health',
+                              style: TextStyle(
+                                fontSize: 19,
+                                fontWeight: FontWeight.bold,
+                                color: oceanBlue,
                               ),
-                            ],
-                          ),
+                            ),
+                            SizedBox(height: 5),
+                            Text(
+                              'Record your daily activity',
+                              style: TextStyle(fontSize: 13),
+                            ),
+                          ],
                         ),
-                        OutlinedButton(
-                          onPressed: _pickDate,
-                          child: const Text('Change'),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Date card
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFD7E6F0)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.calendar_month,
+                        color: oceanBlue,
+                        size: 30,
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Record Date',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.black54,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              _formattedDate(_selectedDate),
+                              style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
+                      OutlinedButton(
+                        onPressed: _pickDate,
+                        child: const Text('Change'),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 28),
+
+                const Text(
+                  'Daily Activity Details',
+                  style: TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.bold,
+                    color: oceanBlue,
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+
+                _buildNumberField(
+                  title: 'Steps Walked',
+                  hint: 'e.g. 6000',
+                  unit: 'steps',
+                  icon: Icons.directions_walk,
+                  iconColor: Colors.green,
+                  controller: _stepsController,
+                  fieldName: 'steps',
+                ),
+
+                _buildNumberField(
+                  title: 'Calories Burned',
+                  hint: 'e.g. 450',
+                  unit: 'kcal',
+                  icon: Icons.local_fire_department,
+                  iconColor: Colors.deepOrange,
+                  controller: _caloriesController,
+                  fieldName: 'calories',
+                ),
+
+                _buildNumberField(
+                  title: 'Water Intake',
+                  hint: 'e.g. 2000',
+                  unit: 'mL',
+                  icon: Icons.water_drop,
+                  iconColor: oceanBlue,
+                  controller: _waterController,
+                  fieldName: 'water intake',
+                ),
+
+                const SizedBox(height: 12),
+
+                SizedBox(
+                  height: 55,
+                  child: FilledButton.icon(
+                    onPressed: _isSaving ? null : _saveForm,
+                    icon: _isSaving
+                        ? const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.save),
+                    label: Text(
+                      _isSaving
+                          ? 'Saving...'
+                          : isEditing
+                          ? 'Update Health Record'
+                          : 'Save Health Record',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: oceanBlue,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
                   ),
                 ),
 
                 const SizedBox(height: 20),
 
-                // Steps input
-                TextFormField(
-                  controller: _stepsController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Steps Walked',
-                    hintText: 'e.g. 6000',
-                    prefixIcon: Icon(
-                      Icons.directions_walk,
-                      color: Colors.green,
-                    ),
-                    suffixText: 'steps',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) => _validateNumber(value, 'steps'),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Calories input
-                TextFormField(
-                  controller: _caloriesController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Calories Burned',
-                    hintText: 'e.g. 450',
-                    prefixIcon: Icon(
-                      Icons.local_fire_department,
-                      color: Colors.deepOrange,
-                    ),
-                    suffixText: 'kcal',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) => _validateNumber(value, 'calories'),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Water input
-                TextFormField(
-                  controller: _waterController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Water Intake',
-                    hintText: 'e.g. 2000',
-                    prefixIcon: Icon(Icons.water_drop, color: Colors.blue),
-                    suffixText: 'mL',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) => _validateNumber(value, 'water intake'),
-                ),
-
-                const SizedBox(height: 28),
-
-                // Save button
-                FilledButton.icon(
-                  onPressed: _isSaving ? null : _saveForm,
-                  icon: const Icon(Icons.save),
-                  label: Text(
-                    _isSaving
-                        ? 'Saving...'
-                        : isEditing
-                        ? 'Update Health Record'
-                        : 'Save Health Record',
-                  ),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                const Center(
+                  child: Text(
+                    'Your health records are saved on this device.',
+                    style: TextStyle(fontSize: 12, color: Colors.black54),
                   ),
                 ),
               ],
