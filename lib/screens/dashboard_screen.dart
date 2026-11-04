@@ -8,6 +8,7 @@ import 'add_record_screen.dart';
 import 'goal_settings_screen.dart';
 import 'login_screen.dart';
 import 'records_screen.dart';
+import 'weekly_progress_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -83,6 +84,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const RecordsScreen()),
+    );
+
+    if (!mounted) return;
+    await _loadDashboard();
+  }
+
+  Future<void> _openWeeklyProgress() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const WeeklyProgressScreen()),
     );
 
     if (!mounted) return;
@@ -417,6 +428,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   onPressed: _openRecords,
                   icon: const Icon(Icons.list_alt),
                   label: const Text('View All Health Records'),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Weekly Progress button
+              SizedBox(
+                height: 54,
+                child: OutlinedButton.icon(
+                  onPressed: _openWeeklyProgress,
+                  icon: const Icon(Icons.show_chart),
+                  label: const Text('View Weekly Progress'),
                 ),
               ),
 
