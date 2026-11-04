@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'providers/health_record_provider.dart';
-import 'screens/dashboard_screen.dart';
+import 'screens/login_screen.dart';
 
 void main() {
   runApp(
@@ -71,6 +71,7 @@ class HealthMateApp extends StatelessWidget {
         ),
       ),
 
+      // App starts with Welcome Screen
       home: const WelcomeScreen(),
     );
   }
@@ -83,6 +84,7 @@ class WelcomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('HealthMate')),
+
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -111,10 +113,11 @@ class WelcomeScreen extends StatelessWidget {
 
               ElevatedButton(
                 onPressed: () {
+                  // Open Login Screen instead of Dashboard
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const DashboardScreen(),
+                      builder: (context) => const LoginScreen(),
                     ),
                   );
                 },
