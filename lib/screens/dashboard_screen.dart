@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/health_record.dart';
 import '../providers/health_record_provider.dart';
 import '../widgets/summary_card.dart';
+import '../widgets/goal_progress_card.dart';
 import 'add_record_screen.dart';
 import 'records_screen.dart';
 
@@ -17,11 +18,15 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   bool _isLoading = true;
 
+  // Daily health goals
+  static const int dailyStepsGoal = 8000;
+  static const int dailyWaterGoal = 2000;
+
   @override
   void initState() {
     super.initState();
 
-    // Load saved health records when Dashboard opens
+    // Load saved records when dashboard opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadRecords();
     });
@@ -63,7 +68,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  // Open Add Record screen and refresh Dashboard
+  // Open Add Record screen
   Future<void> _openAddRecord() async {
     await Navigator.push<HealthRecord>(
       context,
@@ -75,7 +80,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  // Open Records screen and refresh after returning
+  // Open Records History screen
   Future<void> _openRecords() async {
     await Navigator.push(
       context,
@@ -91,27 +96,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final todayDate = _getFormattedDate();
 
-    // Read today's totals from Provider
+    // Get today's health data from Provider
     final healthProvider = context.watch<HealthRecordProvider>();
 
     final steps = healthProvider.getTotalSteps(todayDate);
     final calories = healthProvider.getTotalCalories(todayDate);
     final water = healthProvider.getTotalWater(todayDate);
 
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
+      backgroundColor: colorScheme.surface,
+
+      // App Bar
       appBar: AppBar(
-        title: const Row(
+        title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.favorite, color: Colors.teal),
-            SizedBox(width: 8),
-            Text('HealthMate', style: TextStyle(fontWeight: FontWeight.bold)),
+            Icon(Icons.favorite, color: colorScheme.primary),
+            const SizedBox(width: 8),
+            const Text(
+              'HealthMate',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+        backgroundColor: colorScheme.primaryContainer,
       ),
 
+      // Dashboard Body
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Center(
@@ -120,52 +134,67 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
-                    // Today's date card
+                    // Today's Date Card
                     Card(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .surfaceContainerHighest,
+                      color: colorScheme.primaryContainer,
                       elevation: 0,
                       child: Padding(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(18),
                         child: Row(
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.calendar_today,
-                              color: Colors.teal,
+                              color: colorScheme.primary,
+                              size: 28,
                             ),
-                            const SizedBox(width: 12),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  "Today's Activity Summary",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    "Today's Activity Summary",
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(todayDate),
-                              ],
+                                  const SizedBox(height: 5),
+                                  Text(
+                                    todayDate,
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
                       ),
                     ),
 
+                    const SizedBox(height: 20),
+
+                    // Health Summary Heading
+                    const Text(
+                      'Health Overview',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
                     const SizedBox(height: 12),
 
-                    // Steps
+                    // Total Steps
                     SummaryCard(
                       title: 'Total Steps Walked',
                       value: steps.toString(),
                       unit: 'steps',
                       icon: Icons.directions_walk,
-                      color: Colors.green,
+                      color: Colors.blue,
                     ),
 
-                    // Calories
+                    // Total Calories
                     SummaryCard(
                       title: 'Total Calories Burned',
                       value: calories.toString(),
@@ -174,53 +203,93 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       color: Colors.deepOrange,
                     ),
 
-                    // Water
+                    // Total Water
                     SummaryCard(
                       title: 'Total Water Intake',
                       value: water.toString(),
                       unit: 'mL',
                       icon: Icons.water_drop,
-                      color: Colors.blue,
+                      color: Colors.lightBlue,
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
 
-                    // Add Record button
-                    FilledButton.icon(
-                      onPressed: _openAddRecord,
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add Health Record'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Colors.teal,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                    // Daily Goals Heading
+                    const Text(
+                      'Daily Health Goals',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
 
                     const SizedBox(height: 12),
 
-                    // View Records button
+                    // Steps Progress Card
+                    GoalProgressCard(
+                      title: 'Daily Steps Goal',
+                      currentValue: steps,
+                      goalValue: dailyStepsGoal,
+                      unit: 'steps',
+                      icon: Icons.directions_walk,
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Water Progress Card
+                    GoalProgressCard(
+                      title: 'Daily Water Goal',
+                      currentValue: water,
+                      goalValue: dailyWaterGoal,
+                      unit: 'mL',
+                      icon: Icons.water_drop,
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Add Health Record Button
+                    FilledButton.icon(
+                      onPressed: _openAddRecord,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add Health Record'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // View Records Button
                     OutlinedButton.icon(
                       onPressed: _openRecords,
                       icon: const Icon(Icons.list_alt),
                       label: const Text('View All Health Records'),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
 
-                    // Information message
-                    const Card(
+                    // Information Card
+                    Card(
+                      color: colorScheme.primaryContainer,
+                      elevation: 0,
                       child: Padding(
-                        padding: EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(14),
                         child: Row(
                           children: [
-                            Icon(Icons.info_outline, color: Colors.teal),
-                            SizedBox(width: 8),
-                            Expanded(
+                            Icon(
+                              Icons.info_outline,
+                              color: colorScheme.primary,
+                            ),
+                            const SizedBox(width: 10),
+                            const Expanded(
                               child: Text(
-                                'Today\'s health summary is loaded from saved records.',
+                                'Your daily health summary and goals '
+                                'are calculated using saved health records.',
                                 style: TextStyle(fontSize: 12),
                               ),
                             ),
@@ -228,15 +297,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
                     ),
+
+                    const SizedBox(height: 12),
                   ],
                 ),
               ),
             ),
 
-      // Bottom navigation
+      // Bottom Navigation
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 0,
-        selectedItemColor: Colors.teal,
+        selectedItemColor: colorScheme.primary,
+        unselectedItemColor: colorScheme.onSurfaceVariant,
         onTap: (index) {
           if (index == 1) {
             _openAddRecord();
