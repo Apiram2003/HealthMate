@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../services/auth_service.dart';
 import 'dashboard_screen.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,6 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
 
   bool _showPassword = false;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -24,12 +27,54 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _login() {
-    if (_formKey.currentState!.validate()) {
-      // Demo login: authentication will be added later.
-      Navigator.pushReplacement(
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final success = await AuthService().login(
+        _emailController.text,
+        _passwordController.text,
+      );
+
+      if (!mounted) return;
+
+      if (success) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+          (route) => false,
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid email or password')),
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
         context,
-        MaterialPageRoute(builder: (context) => const DashboardScreen()),
+      ).showSnackBar(const SnackBar(content: Text('Login failed. Try again.')));
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _openRegister() async {
+    final registered = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (context) => const RegisterScreen()),
+    );
+
+    if (!mounted) return;
+
+    if (registered == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Account created! Please login.')),
       );
     }
   }
@@ -58,9 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         color: Color(0xFF1976D2),
                       ),
                     ),
-
                     const SizedBox(height: 20),
-
                     const Text(
                       'Welcome to HealthMate',
                       textAlign: TextAlign.center,
@@ -70,17 +113,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         color: Color(0xFF174A80),
                       ),
                     ),
-
                     const SizedBox(height: 8),
-
                     const Text(
                       'Login to continue your health journey',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 14, color: Colors.grey),
                     ),
-
                     const SizedBox(height: 40),
-
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
@@ -102,9 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         return null;
                       },
                     ),
-
                     const SizedBox(height: 18),
-
                     TextFormField(
                       controller: _passwordController,
                       obscureText: !_showPassword,
@@ -137,26 +174,27 @@ class _LoginScreenState extends State<LoginScreen> {
                         return null;
                       },
                     ),
-
                     const SizedBox(height: 28),
-
                     SizedBox(
                       height: 52,
                       child: ElevatedButton(
-                        onPressed: _login,
+                        onPressed: _isLoading ? null : _login,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1976D2),
                           foregroundColor: Colors.white,
                         ),
-                        child: const Text(
-                          'Login',
-                          style: TextStyle(fontSize: 17),
+                        child: Text(
+                          _isLoading ? 'Logging in...' : 'Login',
+                          style: const TextStyle(fontSize: 17),
                         ),
                       ),
                     ),
-
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: _openRegister,
+                      child: const Text("Don't have an account? Register"),
+                    ),
                     const SizedBox(height: 20),
-
                     const Text(
                       'HealthMate - Personal Health Tracker',
                       textAlign: TextAlign.center,
