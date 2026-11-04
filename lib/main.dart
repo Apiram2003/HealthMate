@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'providers/health_record_provider.dart';
+import 'screens/dashboard_screen.dart';
 import 'screens/login_screen.dart';
+import 'services/auth_service.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
   runApp(
     ChangeNotifierProvider(
       create: (context) => HealthRecordProvider(),
@@ -28,7 +32,6 @@ class HealthMateApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
 
-        // Main Ocean Blue colour theme
         colorScheme: ColorScheme.fromSeed(
           seedColor: primaryBlue,
           brightness: Brightness.light,
@@ -36,14 +39,12 @@ class HealthMateApp extends StatelessWidget {
 
         scaffoldBackgroundColor: backgroundBlue,
 
-        // AppBar design
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFFE3F2FD),
           foregroundColor: Color(0xFF0D47A1),
           centerTitle: true,
         ),
 
-        // Main buttons
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
             backgroundColor: primaryBlue,
@@ -52,7 +53,6 @@ class HealthMateApp extends StatelessWidget {
           ),
         ),
 
-        // Input fields
         inputDecorationTheme: InputDecorationTheme(
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           focusedBorder: OutlineInputBorder(
@@ -61,7 +61,6 @@ class HealthMateApp extends StatelessWidget {
           ),
         ),
 
-        // Cards
         cardTheme: CardThemeData(
           color: Colors.white,
           elevation: 2,
@@ -71,12 +70,58 @@ class HealthMateApp extends StatelessWidget {
         ),
       ),
 
-      // App starts with Welcome Screen
-      home: const WelcomeScreen(),
+      // Check saved login session when app starts
+      home: const AuthCheckScreen(),
     );
   }
 }
 
+// Check whether the user is already logged in
+class AuthCheckScreen extends StatefulWidget {
+  const AuthCheckScreen({super.key});
+
+  @override
+  State<AuthCheckScreen> createState() => _AuthCheckScreenState();
+}
+
+class _AuthCheckScreenState extends State<AuthCheckScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    bool isLoggedIn = false;
+
+    try {
+      isLoggedIn = await AuthService().isLoggedIn();
+    } catch (e) {
+      debugPrint('Error checking login status: $e');
+    }
+
+    if (!mounted) return;
+
+    if (isLoggedIn) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const DashboardScreen()),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+  }
+}
+
+// Welcome Screen for users who are not logged in
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
@@ -113,7 +158,6 @@ class WelcomeScreen extends StatelessWidget {
 
               ElevatedButton(
                 onPressed: () {
-                  // Open Login Screen instead of Dashboard
                   Navigator.push(
                     context,
                     MaterialPageRoute(
