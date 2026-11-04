@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/health_record.dart';
 import '../providers/health_record_provider.dart';
 import '../widgets/summary_card.dart';
 import '../widgets/goal_progress_card.dart';
+
 import 'add_record_screen.dart';
 import 'records_screen.dart';
+import 'goal_settings_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -18,21 +21,21 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   bool _isLoading = true;
 
-  // Daily health goals
-  static const int dailyStepsGoal = 8000;
-  static const int dailyWaterGoal = 2000;
+  // Default daily goals
+  int dailyStepsGoal = 8000;
+  int dailyWaterGoal = 2000;
 
   @override
   void initState() {
     super.initState();
 
-    // Load saved records when dashboard opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadRecords();
+      _loadGoals();
     });
   }
 
-  // Get today's date in YYYY-MM-DD format
+  // Get today's date
   String _getFormattedDate() {
     final now = DateTime.now();
 
@@ -43,7 +46,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return '$year-$month-$day';
   }
 
-  // Load records using Provider
+  // Load health records using Provider
   Future<void> _loadRecords() async {
     if (!mounted) return;
 
@@ -65,6 +68,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Unable to load health records')),
       );
+    }
+  }
+
+  // Load saved goals from SharedPreferences
+  Future<void> _loadGoals() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      if (!mounted) return;
+
+      setState(() {
+        dailyStepsGoal = prefs.getInt('stepsGoal') ?? 8000;
+        dailyWaterGoal = prefs.getInt('waterGoal') ?? 2000;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to load goal settings')),
+      );
+    }
+  }
+
+  // Open Goal Settings screen
+  Future<void> _openGoalSettings() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const GoalSettingsScreen()),
+    );
+
+    if (mounted) {
+      await _loadGoals();
     }
   }
 
@@ -96,7 +131,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final todayDate = _getFormattedDate();
 
-    // Get today's health data from Provider
+    // Get today's health totals from Provider
     final healthProvider = context.watch<HealthRecordProvider>();
 
     final steps = healthProvider.getTotalSteps(todayDate);
@@ -123,6 +158,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         centerTitle: true,
         backgroundColor: colorScheme.primaryContainer,
+
+        // Goal Settings button
+        actions: [
+          IconButton(
+            onPressed: _openGoalSettings,
+            icon: const Icon(Icons.settings),
+            tooltip: 'Goal Settings',
+          ),
+        ],
       ),
 
       // Dashboard Body
@@ -174,7 +218,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                     const SizedBox(height: 20),
 
-                    // Health Summary Heading
+                    // Health Overview Heading
                     const Text(
                       'Health Overview',
                       style: TextStyle(
@@ -185,7 +229,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                     const SizedBox(height: 12),
 
-                    // Total Steps
+                    // Steps Summary
                     SummaryCard(
                       title: 'Total Steps Walked',
                       value: steps.toString(),
@@ -194,7 +238,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       color: Colors.blue,
                     ),
 
-                    // Total Calories
+                    // Calories Summary
                     SummaryCard(
                       title: 'Total Calories Burned',
                       value: calories.toString(),
@@ -203,7 +247,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       color: Colors.deepOrange,
                     ),
 
-                    // Total Water
+                    // Water Summary
                     SummaryCard(
                       title: 'Total Water Intake',
                       value: water.toString(),
@@ -215,17 +259,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(height: 24),
 
                     // Daily Goals Heading
-                    const Text(
-                      'Daily Health Goals',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Daily Health Goals',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: _openGoalSettings,
+                          icon: const Icon(Icons.edit),
+                          tooltip: 'Edit Daily Goals',
+                        ),
+                      ],
                     ),
 
                     const SizedBox(height: 12),
 
-                    // Steps Progress Card
+                    // Steps Goal Progress
                     GoalProgressCard(
                       title: 'Daily Steps Goal',
                       currentValue: steps,
@@ -236,7 +292,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                     const SizedBox(height: 12),
 
-                    // Water Progress Card
+                    // Water Goal Progress
                     GoalProgressCard(
                       title: 'Daily Water Goal',
                       currentValue: water,
