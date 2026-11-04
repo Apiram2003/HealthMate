@@ -14,6 +14,17 @@ void main() {
     );
   }
 
+  // Scroll down until Save button is visible
+  Future<void> findSaveButton(WidgetTester tester) async {
+    await tester.scrollUntilVisible(
+      find.text('Save Health Record'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+
+    await tester.pumpAndSettle();
+  }
+
   group('Add Health Record Form Tests', () {
     // Test 1: Check form fields
     testWidgets('Add Record screen displays required fields', (
@@ -23,6 +34,9 @@ void main() {
 
       expect(find.text('Add Health Record'), findsOneWidget);
       expect(find.byType(TextFormField), findsNWidgets(3));
+
+      await findSaveButton(tester);
+
       expect(find.text('Save Health Record'), findsOneWidget);
     });
 
@@ -31,6 +45,8 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(createTestApp());
+
+      await findSaveButton(tester);
 
       await tester.tap(find.text('Save Health Record'));
       await tester.pump();
@@ -52,6 +68,8 @@ void main() {
       await tester.enterText(fields.at(1), '-50');
       await tester.enterText(fields.at(2), '-500');
 
+      await findSaveButton(tester);
+
       await tester.tap(find.text('Save Health Record'));
       await tester.pump();
 
@@ -72,10 +90,32 @@ void main() {
       await tester.enterText(fields.at(1), 'hello');
       await tester.enterText(fields.at(2), 'water');
 
+      await findSaveButton(tester);
+
       await tester.tap(find.text('Save Health Record'));
       await tester.pump();
 
       expect(find.text('Please enter a valid whole number'), findsNWidgets(3));
+    });
+
+    // Test 5: Check Ocean Blue header
+    testWidgets('Ocean Blue header displays correctly', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(createTestApp());
+
+      expect(find.text('Track Your Health'), findsOneWidget);
+      expect(find.text('Record your daily activity'), findsOneWidget);
+    });
+
+    // Test 6: Check date selection
+    testWidgets('Record date and Change button are displayed', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(createTestApp());
+
+      expect(find.text('Record Date'), findsOneWidget);
+      expect(find.text('Change'), findsOneWidget);
     });
   });
 }
