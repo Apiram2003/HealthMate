@@ -59,6 +59,19 @@ class AuthService {
     return false;
   }
 
+  // Check whether the user is already logged in
+  Future<bool> isLoggedIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_loginKey) ?? false;
+  }
+
+  // Get the registered user's email
+  Future<String?> getUserEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_emailKey);
+  }
+
+  // Logout without deleting the registered account
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_loginKey, false);
