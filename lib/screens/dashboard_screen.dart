@@ -4,9 +4,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers/health_record_provider.dart';
 import '../services/auth_service.dart';
+
 import 'add_record_screen.dart';
 import 'goal_settings_screen.dart';
 import 'login_screen.dart';
+import 'profile_screen.dart';
 import 'records_screen.dart';
 import 'weekly_progress_screen.dart';
 
@@ -38,13 +40,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return '$year-$month-$day';
   }
 
+  // Load health records and saved daily goals
   Future<void> _loadDashboard() async {
-    setState(() => _isLoading = true);
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
       final prefs = await SharedPreferences.getInstance();
 
-      // Load saved daily goals
       final stepsGoal = prefs.getInt('steps_goal') ?? 8000;
       final waterGoal = prefs.getInt('water_goal') ?? 2000;
 
@@ -55,7 +61,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _waterGoal = waterGoal;
       });
 
-      // Load saved health records from Provider
       await context.read<HealthRecordProvider>().loadRecords();
     } catch (e) {
       if (!mounted) return;
@@ -65,11 +70,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     } finally {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
 
+  // Open Add Health Record screen
   Future<void> _openAddRecord() async {
     await Navigator.push(
       context,
@@ -80,6 +88,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await _loadDashboard();
   }
 
+  // Open Records screen
   Future<void> _openRecords() async {
     await Navigator.push(
       context,
@@ -90,6 +99,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await _loadDashboard();
   }
 
+  // Open Weekly Progress screen
   Future<void> _openWeeklyProgress() async {
     await Navigator.push(
       context,
@@ -100,6 +110,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await _loadDashboard();
   }
 
+  // Open Daily Goal Settings
   Future<void> _openGoalSettings() async {
     await Navigator.push(
       context,
@@ -110,6 +121,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await _loadDashboard();
   }
 
+  // NEW: Open User Profile screen
+  Future<void> _openProfile() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ProfileScreen()),
+    );
+
+    if (!mounted) return;
+    await _loadDashboard();
+  }
+
+  // Logout with confirmation
   Future<void> _logout() async {
     final shouldLogout = await showDialog<bool>(
       context: context,
@@ -150,6 +173,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  // Health summary card
   Widget _summaryCard({
     required String title,
     required String value,
@@ -173,7 +197,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               child: Icon(icon, size: 30, color: color),
             ),
+
             const SizedBox(width: 16),
+
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -186,7 +212,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
+
                   const SizedBox(height: 6),
+
                   Row(
                     children: [
                       Text(
@@ -197,7 +225,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           color: color,
                         ),
                       ),
+
                       const SizedBox(width: 8),
+
                       Text(
                         unit,
                         style: const TextStyle(
@@ -216,6 +246,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // Daily goal progress card
   Widget _goalCard({
     required String title,
     required int current,
@@ -236,22 +267,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Row(
               children: [
                 Icon(icon, color: const Color(0xFF2196F3)),
+
                 const SizedBox(width: 12),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
             ),
+
             const SizedBox(height: 20),
+
             Text(
               '$current / $goal $unit',
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
+
             const SizedBox(height: 12),
+
             LinearProgressIndicator(
               value: progress.clamp(0.0, 1.0),
               minHeight: 10,
@@ -259,7 +298,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               backgroundColor: const Color(0xFFE3F2FD),
               color: const Color(0xFF2196F3),
             ),
+
             const SizedBox(height: 10),
+
             Text(
               '${percentage.toStringAsFixed(1)}% of daily goal completed',
               style: const TextStyle(fontSize: 13, color: Colors.blueGrey),
@@ -270,12 +311,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // Main Dashboard UI
   Widget _buildDashboard() {
     return Consumer<HealthRecordProvider>(
       builder: (context, provider, child) {
         final today = _formatDate(DateTime.now());
 
-        // Calculate totals for today's records
+        // Get today's saved health records
         final todayRecords = provider.records
             .where((record) => record.date == today)
             .toList();
@@ -295,7 +337,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              // Today's date
+              // Today's activity summary
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -309,7 +351,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       size: 28,
                       color: Color(0xFF416799),
                     ),
+
                     const SizedBox(width: 16),
+
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -320,7 +364,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+
                         const SizedBox(height: 6),
+
                         Text(
                           today,
                           style: const TextStyle(color: Colors.black54),
@@ -340,6 +386,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               const SizedBox(height: 20),
 
+              // Steps summary
               _summaryCard(
                 title: 'Total Steps Walked',
                 value: totalSteps.toString(),
@@ -349,6 +396,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 backgroundColor: const Color(0xFFE3F2FD),
               ),
 
+              // Calories summary
               _summaryCard(
                 title: 'Total Calories Burned',
                 value: totalCalories.toString(),
@@ -358,6 +406,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 backgroundColor: const Color(0xFFFFE8E0),
               ),
 
+              // Water summary
               _summaryCard(
                 title: 'Total Water Intake',
                 value: totalWater.toString(),
@@ -377,6 +426,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     'Daily Health Goals',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
+
                   IconButton(
                     tooltip: 'Edit Goals',
                     onPressed: _openGoalSettings,
@@ -387,6 +437,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               const SizedBox(height: 14),
 
+              // Steps goal
               _goalCard(
                 title: 'Daily Steps Goal',
                 current: totalSteps,
@@ -395,6 +446,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 icon: Icons.directions_walk,
               ),
 
+              // Water goal
               _goalCard(
                 title: 'Daily Water Goal',
                 current: totalWater,
@@ -455,7 +507,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: const Row(
                   children: [
                     Icon(Icons.info_outline, color: Color(0xFF416799)),
+
                     SizedBox(width: 12),
+
                     Expanded(
                       child: Text(
                         'Your daily health summary and goals are '
@@ -483,16 +537,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.favorite, color: Color(0xFF416799)),
+
             SizedBox(width: 8),
+
             Text('HealthMate', style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
+
+        // Profile, Settings and Logout
         actions: [
+          IconButton(
+            tooltip: 'My Profile',
+            onPressed: _openProfile,
+            icon: const Icon(Icons.account_circle_outlined),
+          ),
+
           IconButton(
             tooltip: 'Goal Settings',
             onPressed: _openGoalSettings,
             icon: const Icon(Icons.settings),
           ),
+
           IconButton(
             tooltip: 'Logout',
             onPressed: _logout,
@@ -505,11 +570,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ? const Center(child: CircularProgressIndicator())
           : _buildDashboard(),
 
+      // Bottom navigation
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
           if (index == 0) {
-            setState(() => _selectedIndex = 0);
+            setState(() {
+              _selectedIndex = 0;
+            });
           } else if (index == 1) {
             _openAddRecord();
           } else if (index == 2) {
@@ -521,10 +589,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             icon: Icon(Icons.dashboard),
             label: 'Dashboard',
           ),
+
           NavigationDestination(
             icon: Icon(Icons.add_circle_outline),
             label: 'Add Record',
           ),
+
           NavigationDestination(icon: Icon(Icons.list_alt), label: 'Records'),
         ],
       ),
