@@ -17,8 +17,30 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
+  final AuthService _authService = AuthService();
+
   bool _showPassword = false;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRegisteredEmail();
+  }
+
+  Future<void> _loadRegisteredEmail() async {
+    try {
+      final email = await _authService.getUserEmail();
+
+      if (!mounted) return;
+
+      if (email != null && email.isNotEmpty) {
+        _emailController.text = email;
+      }
+    } catch (e) {
+      debugPrint('Unable to load registered email: $e');
+    }
+  }
 
   @override
   void dispose() {
@@ -28,40 +50,76 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_isLoading) return;
 
-    setState(() => _isLoading = true);
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
-      final success = await AuthService().login(
-        _emailController.text,
-        _passwordController.text,
-      );
+      final enteredEmail = _emailController.text.trim().toLowerCase();
+
+      final enteredPassword = _passwordController.text;
+
+      final savedEmail = await _authService.getUserEmail();
+
+      // Debug information - never print passwords.
+      debugPrint('Registered email: $savedEmail');
+      debugPrint('Entered email: $enteredEmail');
+
+      if (!mounted) return;
+
+      if (savedEmail == null || savedEmail.isEmpty) {
+        _showMessage('No registered account found. Please register first.');
+        return;
+      }
+
+      if (savedEmail.trim().toLowerCase() != enteredEmail) {
+        _showMessage('Email does not match the registered account.');
+        return;
+      }
+
+      final success = await _authService.login(enteredEmail, enteredPassword);
 
       if (!mounted) return;
 
       if (success) {
-        Navigator.pushAndRemoveUntil(
-          context,
+        Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const DashboardScreen()),
           (route) => false,
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Invalid email or password')),
-        );
+        _showMessage('Incorrect password. Please try again.');
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Login error: $e');
+
       if (!mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Login failed. Try again.')));
+      _showMessage('Login failed. Please try again.');
     } finally {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.redAccent,
+      ),
+    );
   }
 
   Future<void> _openRegister() async {
@@ -73,14 +131,25 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (registered == true) {
+      await _loadRegisteredEmail();
+
+      if (!mounted) return;
+
+      _passwordController.clear();
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Account created! Please login.')),
+        const SnackBar(
+          content: Text('Registration successful! Please login.'),
+          backgroundColor: Colors.green,
+        ),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    const primaryBlue = Color(0xFF1976D2);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F8FF),
       body: SafeArea(
@@ -97,13 +166,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     const CircleAvatar(
                       radius: 42,
                       backgroundColor: Color(0xFFD8E8FF),
-                      child: Icon(
-                        Icons.favorite,
-                        size: 45,
-                        color: Color(0xFF1976D2),
-                      ),
+                      child: Icon(Icons.favorite, size: 45, color: primaryBlue),
                     ),
+
                     const SizedBox(height: 20),
+
                     const Text(
                       'Welcome to HealthMate',
                       textAlign: TextAlign.center,
@@ -113,16 +180,21 @@ class _LoginScreenState extends State<LoginScreen> {
                         color: Color(0xFF174A80),
                       ),
                     ),
+
                     const SizedBox(height: 8),
+
                     const Text(
                       'Login to continue your health journey',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 14, color: Colors.grey),
                     ),
+
                     const SizedBox(height: 40),
+
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
                       decoration: const InputDecoration(
                         labelText: 'Email Address',
                         prefixIcon: Icon(Icons.email_outlined),
@@ -133,18 +205,28 @@ class _LoginScreenState extends State<LoginScreen> {
                           return 'Please enter your email';
                         }
 
+                        final email = value.trim();
+
                         if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
-                            .hasMatch(value.trim())) {
+                            .hasMatch(email)) {
                           return 'Enter a valid email address';
                         }
 
                         return null;
                       },
                     ),
+
                     const SizedBox(height: 18),
+
                     TextFormField(
                       controller: _passwordController,
                       obscureText: !_showPassword,
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) {
+                        if (!_isLoading) {
+                          _login();
+                        }
+                      },
                       decoration: InputDecoration(
                         labelText: 'Password',
                         prefixIcon: const Icon(Icons.lock_outline),
@@ -174,27 +256,45 @@ class _LoginScreenState extends State<LoginScreen> {
                         return null;
                       },
                     ),
+
                     const SizedBox(height: 28),
+
                     SizedBox(
                       height: 52,
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _login,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1976D2),
+                          backgroundColor: primaryBlue,
                           foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                         ),
-                        child: Text(
-                          _isLoading ? 'Logging in...' : 'Login',
-                          style: const TextStyle(fontSize: 17),
-                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 22,
+                                width: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                'Login',
+                                style: TextStyle(fontSize: 17),
+                              ),
                       ),
                     ),
+
                     const SizedBox(height: 16),
+
                     TextButton(
-                      onPressed: _openRegister,
+                      onPressed: _isLoading ? null : _openRegister,
                       child: const Text("Don't have an account? Register"),
                     ),
-                    const SizedBox(height: 20),
+
+                    const SizedBox(height: 24),
+
                     const Text(
                       'HealthMate - Personal Health Tracker',
                       textAlign: TextAlign.center,
